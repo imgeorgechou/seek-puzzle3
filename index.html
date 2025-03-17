@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>滑動拼圖遊戲</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Arial", sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background-color: #f5f5f5;
+      }
+
+      header {
+        background-color: #2c3e50;
+        color: white;
+        text-align: center;
+        padding: 2rem 0;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .game-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem 0;
+      }
+
+      .game-controls {
+        margin-bottom: 2rem;
+      }
+
+      .image-select {
+        margin-bottom: 1rem;
+      }
+
+      button {
+        background-position: center;
+        background-size: 500px 500px;
+        color: rgba(255, 255, 255, 0.7);
+        text-shadow: 1px 1px 2px #000;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        margin: 0 10px;
+        transition: background-color 0.3s;
+      }
+
+      button:hover {
+        background-color: #2980b9;
+      }
+
+      .puzzle-container {
+        position: relative;
+        width: 450px;
+        height: 450px;
+        border: 2px solid #333;
+        background-color: #eee;
+        margin-bottom: 1rem;
+      }
+
+      .puzzle-piece {
+        position: absolute;
+        width: 98px;
+        height: 98px;
+        border: 1px solid #333;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s;
+        background-color: #3498db;
+        color: white;
+      }
+
+      .empty {
+        background-color: transparent;
+        border: none;
+      }
+
+      .about-section {
+        padding: 2rem 0;
+        background-color: white;
+      }
+
+      footer {
+        background-color: #2c3e50;
+        color: white;
+        text-align: center;
+        padding: 1rem 0;
+      }
+
+      .difficulty-select {
+        margin-bottom: 1rem;
+      }
+
+      .success-message {
+        font-size: 1.5rem;
+        color: #27ae60;
+        font-weight: bold;
+        margin-top: 1rem;
+        display: none;
+      }
+      .game-instructions {
+        text-align: center;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .game-instructions ul {
+        text-align: left;
+        display: inline-block;
+        margin: 20px 0;
+      }
+
+      .game-board {
+        text-align: center;
+        position: relative;
+      }
+
+      .start-button {
+        margin-top: 20px;
+        font-size: 1.2rem;
+        padding: 12px 30px;
+      }
+
+      .restart-button {
+        margin-top: 20px;
+        background-color: #e74c3c;
+      }
+
+      .restart-button:hover {
+        background-color: #c0392b;
+      }
+      .custom-file-upload {
+        display: inline-block;
+        padding: 10px 20px;
+        cursor: pointer;
+        background-color: #3498db;
+        color: white;
+        border-radius: 8px;
+        transition: background-color 0.3s;
+        margin-top: 15px;
+        font-weight: 500;
+      }
+
+      .custom-file-upload:hover {
+        background-color: #2980b9;
+      }
+
+      #file-name {
+        margin-left: 10px;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>滑動拼圖遊戲</h1>
+    </header>
+
+    <main>
+      <section class="game-section" id="game">
+        <div class="container">
+          <div id="game-instructions" class="game-instructions">
+            <h2>遊戲說明</h2>
+            <p>點擊與空白格相鄰的拼圖移動，得到數字後前往攤位尋找小男孩吧！</p>
+            <button id="start-game" class="start-button">開始遊戲</button>
+          </div>
+
+          <div id="game-board" class="game-board" style="display: none">
+            <div class="puzzle-container" id="puzzle-container"></div>
+            <div>
+              <label
+                ><input type="checkbox" id="show-numbers" checked />
+                顯示數字</label
+              >
+            </div>
+            <div class="success-message" id="success-message">
+              恭喜！你完成了拼圖！
+            </div>
+            <button id="restart-game" class="restart-button">重新開始</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>&copy; 2025 滑動拼圖遊戲. 版權所有.</p>
+    </footer>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const puzzleContainer = document.getElementById("puzzle-container");
+        const startGameButton = document.getElementById("start-game");
+        const restartGameButton = document.getElementById("restart-game");
+        const showNumbersCheckbox = document.getElementById("show-numbers");
+        const successMessage = document.getElementById("success-message");
+        const gameInstructions = document.getElementById("game-instructions");
+        const gameBoard = document.getElementById("game-board");
+
+        // 固定難度為3x3
+        const size = 3;
+
+        // 使用上傳的彩色圓點圖片
+        const customImage = "./78.jpg"; // 這將在實際環境中被替換為真實圖片
+
+        // 拼圖容器大小
+        const puzzleSize = 450;
+
+        let pieces = [];
+        let emptyPos = { x: size - 1, y: size - 1 };
+        let isGameStarted = false;
+
+        // 初始化拼圖
+        function initPuzzle() {
+          emptyPos = { x: size - 1, y: size - 1 };
+          successMessage.style.display = "none";
+
+          // 調整拼圖大小
+          const pieceSize = puzzleSize / size - 2;
+          puzzleContainer.innerHTML = "";
+
+          // 創建有序的拼圖
+          pieces = [];
+          for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+              const value = y * size + x + 1;
+              if (value === size * size) continue; // 最後一格是空白的
+
+              const piece = document.createElement("div");
+              piece.className = "puzzle-piece";
+              piece.textContent = showNumbersCheckbox.checked ? value : "";
+              piece.style.width = `${pieceSize}px`;
+              piece.style.height = `${pieceSize}px`;
+              piece.style.left = `${x * (pieceSize + 2)}px`;
+              piece.style.top = `${y * (pieceSize + 2)}px`;
+
+              // 設置背景圖片
+              let bgImage = customImage;
+
+              // 計算背景位置以顯示500x500圖片的正確部分
+              const bgPositionX = -((x * 500) / size);
+              const bgPositionY = -((y * 500) / size);
+
+              piece.style.backgroundImage = `url(${bgImage})`;
+              piece.style.backgroundPosition = `${bgPositionX}px ${bgPositionY}px`;
+              piece.style.backgroundSize = `${500}px ${500}px`;
+
+              piece.setAttribute("data-value", value);
+              piece.setAttribute("data-x", x);
+              piece.setAttribute("data-y", y);
+
+              piece.addEventListener("click", () => {
+                if (!isGameStarted) return;
+                const currentX = parseInt(piece.getAttribute("data-x"));
+                const currentY = parseInt(piece.getAttribute("data-y"));
+                movePiece(currentX, currentY);
+              });
+
+              puzzleContainer.appendChild(piece);
+              pieces.push({
+                element: piece,
+                value,
+                x,
+                y,
+              });
+            }
+          }
+
+          // 初始狀態下不打亂拼圖
+          isGameStarted = false;
+        }
+
+        // 打亂拼圖
+        function shufflePuzzle() {
+          // 隨機移動100*size次
+          for (let i = 0; i < 100 * size; i++) {
+            const neighbors = getNeighbors(emptyPos.x, emptyPos.y);
+            const randomNeighbor =
+              neighbors[Math.floor(Math.random() * neighbors.length)];
+            if (randomNeighbor) {
+              swapPieces(
+                randomNeighbor.x,
+                randomNeighbor.y,
+                emptyPos.x,
+                emptyPos.y
+              );
+              emptyPos = { x: randomNeighbor.x, y: randomNeighbor.y };
+            }
+          }
+
+          isGameStarted = true;
+        }
+
+        // 獲取鄰居位置
+        function getNeighbors(x, y) {
+          const neighbors = [];
+
+          if (x > 0) neighbors.push({ x: x - 1, y });
+          if (x < size - 1) neighbors.push({ x: x + 1, y });
+          if (y > 0) neighbors.push({ x, y: y - 1 });
+          if (y < size - 1) neighbors.push({ x, y: y + 1 });
+
+          return neighbors;
+        }
+
+        // 移動拼圖塊
+        function movePiece(x, y) {
+          // 檢查是否與空格相鄰
+          if (
+            (Math.abs(x - emptyPos.x) === 1 && y === emptyPos.y) ||
+            (Math.abs(y - emptyPos.y) === 1 && x === emptyPos.x)
+          ) {
+            const oldEmptyX = emptyPos.x;
+            const oldEmptyY = emptyPos.y;
+
+            // 更新空白位置
+            emptyPos = { x, y };
+
+            // 更新拼圖塊位置
+            swapPieces(x, y, oldEmptyX, oldEmptyY);
+
+            // 檢查是否完成
+            if (checkCompletion()) {
+              successMessage.style.display = "block";
+              isGameStarted = false;
+            }
+          }
+        }
+
+        // 交換兩個拼圖塊
+        function swapPieces(x1, y1, x2, y2) {
+          // 找到需要移動的拼圖塊
+          const piece = pieces.find((p) => p.x === x1 && p.y === y1);
+          if (piece) {
+            const pieceSize = parseInt(piece.element.style.width);
+
+            // 更新拼圖塊的位置數據
+            piece.x = x2;
+            piece.y = y2;
+
+            // 更新拼圖塊的視覺位置
+            piece.element.style.left = `${x2 * (pieceSize + 2)}px`;
+            piece.element.style.top = `${y2 * (pieceSize + 2)}px`;
+
+            // 更新拼圖塊的數據屬性
+            piece.element.setAttribute("data-x", x2);
+            piece.element.setAttribute("data-y", y2);
+          }
+        }
+
+        // 檢查拼圖是否完成
+        function checkCompletion() {
+          for (const piece of pieces) {
+            const correctValue = piece.y * size + piece.x + 1;
+            if (piece.value !== correctValue) {
+              return false;
+            }
+          }
+          return true;
+        }
+
+        // 顯示解答
+        function showSolution() {
+          if (!isGameStarted) return;
+
+          for (const piece of pieces) {
+            const value = piece.value;
+            const correctY = Math.floor((value - 1) / size);
+            const correctX = (value - 1) % size;
+
+            const pieceSize = parseInt(piece.element.style.width);
+
+            piece.x = correctX;
+            piece.y = correctY;
+
+            piece.element.style.left = `${correctX * (pieceSize + 2)}px`;
+            piece.element.style.top = `${correctY * (pieceSize + 2)}px`;
+
+            piece.element.setAttribute("data-x", correctX);
+            piece.element.setAttribute("data-y", correctY);
+          }
+
+          emptyPos = { x: size - 1, y: size - 1 };
+          successMessage.style.display = "block";
+          isGameStarted = false;
+        }
+
+        // 事件監聽器
+        startGameButton.addEventListener("click", () => {
+          // 隱藏說明，顯示遊戲
+          gameInstructions.style.display = "none";
+          gameBoard.style.display = "block";
+
+          // 初始化並開始遊戲
+          initPuzzle();
+          shufflePuzzle();
+        });
+
+        restartGameButton.addEventListener("click", () => {
+          // 返回說明畫面
+          gameBoard.style.display = "none";
+          gameInstructions.style.display = "block";
+
+          // 清除成功訊息
+          successMessage.style.display = "none";
+        });
+
+        showNumbersCheckbox.addEventListener("change", () => {
+          // 更新顯示/隱藏數字
+          pieces.forEach((piece) => {
+            if (showNumbersCheckbox.checked) {
+              piece.element.textContent = piece.value;
+            } else {
+              piece.element.textContent = "";
+            }
+          });
+        });
+
+        // 初始化
+        initPuzzle();
+      });
+    </script>
+  </body>
+</html>
